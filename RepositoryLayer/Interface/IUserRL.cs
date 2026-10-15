@@ -6,10 +6,12 @@ namespace RepositoryLayer.Interface
 {
     public interface IUserRL
     {
-        RegistrationModel RegisterUserRL(
-            RegistrationModel registrationModel);
+        RegistrationModel RegisterUserRL(RegistrationModel registrationModel);
+        UserEntity? LoginUserRL(LoginModel loginModel);
+        UserEntity? GetUserByEmail(string email);
 
-        UserEntity? LoginUserRL(
-            LoginModel loginModel);
+        List<UserEntity> GetAllUsers();
+        bool SaveResetToken(string email,string resetToken,DateTime expiry);
+        bool ResetPassword(string email, string newPassword);
     }
 }
