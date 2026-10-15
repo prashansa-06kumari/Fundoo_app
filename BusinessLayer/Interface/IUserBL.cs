@@ -1,5 +1,6 @@
 ﻿using ModelLayer;
 using ModelLayer.Model;
+using RepositoryLayer.Entity;
 
 namespace BusinessLayer.Interface
 {
@@ -10,5 +11,14 @@ namespace BusinessLayer.Interface
 
         ResponseModel<string> LoginUserBL(
             LoginModel loginModel);
+
+        Task<ResponseModel<string>> ForgotPasswordBL(
+            ForgotPasswordModel forgotPasswordModel);
+
+        ResponseModel<string> ResetPasswordBL(
+            ResetPasswordModel resetPasswordModel,
+            string resetToken);
+
+        ResponseModel<List<UserEntity>> GetAllUsersBL();
     }
 }

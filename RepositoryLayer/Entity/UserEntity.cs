@@ -20,5 +20,9 @@ namespace RepositoryLayer.Entity
         public string Password { get; set; } = string.Empty;
 
         public string PhoneNumber { get; set; } = string.Empty;
+
+        public string? ResetOtp { get; set; }
+
+        public DateTime? ResetOtpExpiry { get; set; }
     }
 }
