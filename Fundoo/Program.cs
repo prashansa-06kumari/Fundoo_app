@@ -3,11 +3,14 @@ using BusinessLayer.Service;
 using EmailService.Interface;
 using EmailService.Model;
 using EmailService.Service;
+using Fundoo.Middleware;         // NEW
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using NLog;
+using NLog.Web;
 using RepositoryLayer.Context;
 using RepositoryLayer.Interface;
 using RepositoryLayer.Service;
@@ -22,7 +25,14 @@ namespace Fundoo
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Logging.ClearProviders();
+            builder.Host.UseNLog();
+
             builder.Services.AddControllers();
+
+            // NEW: global exception handling
+            builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+            builder.Services.AddProblemDetails();
 
             builder.Services.AddCors(options =>
             {
@@ -89,7 +99,6 @@ namespace Fundoo
 
             builder.Services.AddScoped<IUserRL, UserRL>();
 
-            // NEW: Notes services
             builder.Services.AddScoped<INoteBL, NoteBL>();
 
             builder.Services.AddScoped<INoteRL, NoteRL>();
@@ -155,6 +164,9 @@ namespace Fundoo
             });
 
             var app = builder.Build();
+
+            // NEW: must come first so it catches errors from everything below
+            app.UseExceptionHandler();
 
             app.UseSwagger();
 
