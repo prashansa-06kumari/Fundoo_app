@@ -1,4 +1,5 @@
-﻿using ModelLayer.Model;
+﻿using ModelLayer.Model.Notes.RequestModel;
+using ModelLayer.Model.Notes.ResponseModel;
 
 namespace BusinessLayer.Interface
 {

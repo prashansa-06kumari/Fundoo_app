@@ -1,5 +1,6 @@
 ﻿using BusinessLayer.Interface;
-using ModelLayer.Model;
+using ModelLayer.Model.Notes.RequestModel;
+using ModelLayer.Model.Notes.ResponseModel;
 using RepositoryLayer.Entity;
 using RepositoryLayer.Interface;
 

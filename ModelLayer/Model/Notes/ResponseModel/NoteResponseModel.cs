@@ -1,4 +1,4 @@
-﻿namespace ModelLayer.Model
+﻿namespace ModelLayer.Model.Notes.ResponseModel
 {
     public class NoteResponseModel
     {

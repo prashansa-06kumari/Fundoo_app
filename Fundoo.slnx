@@ -1,9 +1,7 @@
 <Solution>
-  <Folder Name="/Services/">
-    <Project Path="EmailService/EmailService.csproj" Id="522a869c-5a26-49f8-8733-de8653ef13b5" />
-  </Folder>
   <Project Path="BusinessLayer/BusinessLayer.csproj" Id="ea56a5a1-8a50-4fb8-b3cd-9cab3961bba2" />
   <Project Path="Fundoo/Fundoo.csproj" />
+  <Project Path="Middleware/Middleware.csproj" Id="c7cd0846-677a-4b11-b760-5e1a8baa1eb5" />
   <Project Path="ModelLayer/ModelLayer.csproj" Id="fa1b712f-0282-406f-8e01-41a7e7d01ac6" />
   <Project Path="RepositoryLayer/RepositoryLayer.csproj" Id="439f29be-fb2b-437b-a600-6cf8840292d2" />
 </Solution>

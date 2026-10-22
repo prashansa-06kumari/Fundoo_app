@@ -1,5 +1,5 @@
-﻿using ModelLayer;
-using ModelLayer.Model;
+﻿using ModelLayer.Model;
+using ModelLayer.Model.User.RequestModel;
 using RepositoryLayer.Entity;
 
 namespace BusinessLayer.Interface

@@ -1,34 +1,27 @@
 ﻿using BusinessLayer.Interface;
-using EmailService.Interface;
-using EmailService.Model;
-using EmailService.Service;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using ModelLayer;
+using Middleware.Services.Email;
+using Middleware.Services.Jwt;
 using ModelLayer.Model;
+using ModelLayer.Model.User.RequestModel;
 using RepositoryLayer.Entity;
 using RepositoryLayer.Interface;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-
 namespace BusinessLayer.Service
 {
     public class UserBL : IUserBL
     {
         IUserRL _userRL;
-        IConfiguration _configuration;
         IEmailService _emailService;
+        IJwtService _jwtService;
         MessageService _messageService;
 
         public UserBL(
             IUserRL _userRL,
-            IConfiguration _configuration,
-            IEmailService _emailService)
+            IEmailService _emailService,
+            IJwtService _jwtService)
         {
             this._userRL = _userRL;
-            this._configuration = _configuration;
             this._emailService = _emailService;
+            this._jwtService = _jwtService;
 
             _messageService = new MessageService();
         }
@@ -63,7 +56,10 @@ namespace BusinessLayer.Service
                 };
             }
 
-            string token = GenerateToken(user);
+            string token = _jwtService.GenerateToken(
+                user.UserId.ToString(),
+                user.Email,
+                user.FirstName);
 
             return new ResponseModel<string>
             {
@@ -88,7 +84,9 @@ namespace BusinessLayer.Service
                 };
             }
 
-            string resetToken = GenerateResetToken(user);
+            string resetToken = _jwtService.GenerateResetToken(
+                user.UserId.ToString(),
+                user.Email);
 
             DateTime expiry = DateTime.UtcNow.AddMinutes(10);
 
@@ -225,80 +223,5 @@ namespace BusinessLayer.Service
                 Data = users
             };
         }
-
-        private string GenerateToken(UserEntity user)
-        {
-            var claims = new[]
-            {
-            new Claim(
-                JwtRegisteredClaimNames.Sub,
-                user.UserId.ToString()),
-
-            new Claim(
-                JwtRegisteredClaimNames.Email,
-                user.Email),
-
-            new Claim(
-                "FirstName",
-                user.FirstName),
-
-            new Claim(
-                "token_type",
-                "access")
-        };
-
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(
-                    _configuration["Jwt:Key"]!));
-
-            var credentials = new SigningCredentials(
-                key,
-                SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
-                signingCredentials: credentials);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        private string GenerateResetToken(UserEntity user)
-        {
-            var claims = new[]
-            {
-            new Claim(
-                JwtRegisteredClaimNames.Sub,
-                user.UserId.ToString()),
-
-            new Claim(
-                JwtRegisteredClaimNames.Email,
-                user.Email),
-
-            new Claim(
-                "token_type",
-                "password_reset")
-        };
-
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(
-                    _configuration["Jwt:Key"]!));
-
-            var credentials = new SigningCredentials(
-                key,
-                SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(10),
-                signingCredentials: credentials);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
     }
-
 }
