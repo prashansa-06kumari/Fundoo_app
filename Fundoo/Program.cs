@@ -1,20 +1,17 @@
 using BusinessLayer.Interface;
 using BusinessLayer.Service;
-using EmailService.Interface;
-using EmailService.Model;
-using EmailService.Service;
-using Fundoo.Middleware;         // NEW
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
-using NLog;
-using NLog.Web;
+using Middleware.ExceptionHandling;
+using Middleware.Services.Cache;
+using Middleware.Services.Email;
+using Middleware.Services.Jwt;
 using RepositoryLayer.Context;
 using RepositoryLayer.Interface;
 using RepositoryLayer.Service;
-using System.Reflection;
 using System.Text;
 
 namespace Fundoo
@@ -25,62 +22,44 @@ namespace Fundoo
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Logging.ClearProviders();
-            builder.Host.UseNLog();
+            // Load email credentials from secrets.json
+            builder.Configuration.AddJsonFile(
+                "secrets.json",
+                optional: true,
+                reloadOnChange: true);
 
+            // Controllers
             builder.Services.AddControllers();
 
-            // NEW: global exception handling
+            // Global exception handling
             builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
             builder.Services.AddProblemDetails();
 
-            builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("AllowFrontend", policy =>
-                {
-                    policy.WithOrigins("http://localhost:3000")
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
-                });
-            });
-
+            // Swagger
             builder.Services.AddEndpointsApiExplorer();
 
-            builder.Services.AddSwaggerGen(options =>
+            builder.Services.AddSwaggerGen(c =>
             {
-                options.SwaggerDoc("v1",
-                    new OpenApiInfo
-                    {
-                        Title = "Fundoo Notes API",
-                        Version = "v1",
-                        Description = "API for Fundoo Notes user registration, login, password reset and profile access."
-                    });
-
-                string xmlFile =
-                    $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-
-                string xmlPath =
-                    Path.Combine(AppContext.BaseDirectory, xmlFile);
-
-                if (File.Exists(xmlPath))
+                c.SwaggerDoc("v1", new OpenApiInfo
                 {
-                    options.IncludeXmlComments(xmlPath);
-                }
+                    Title = "Fundoo Notes API",
+                    Version = "v1"
+                });
 
-                options.AddSecurityDefinition("Bearer",
+                c.AddSecurityDefinition("Bearer",
                     new OpenApiSecurityScheme
                     {
                         Name = "Authorization",
                         Type = SecuritySchemeType.Http,
-                        Scheme = "bearer",
+                        Scheme = "Bearer",
                         BearerFormat = "JWT",
                         In = ParameterLocation.Header,
                         Description = "Enter JWT token"
                     });
 
-                options.AddSecurityRequirement(
-                    new OpenApiSecurityRequirement
-                    {
+                // Authorize ka token har request ke saath bhejta hai
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
                     {
                         new OpenApiSecurityScheme
                         {
@@ -90,39 +69,31 @@ namespace Fundoo
                                 Id = "Bearer"
                             }
                         },
-                        Array.Empty<string>()
+                        new string[] { }
                     }
-                    });
+                });
             });
 
+            // Dependency Injection
             builder.Services.AddScoped<IUserBL, UserBL>();
-
             builder.Services.AddScoped<IUserRL, UserRL>();
-
             builder.Services.AddScoped<INoteBL, NoteBL>();
-
             builder.Services.AddScoped<INoteRL, NoteRL>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IJwtService, JwtService>();
 
-            builder.Services.AddDbContext<FundooContext>(
-                options =>
-                {
-                    options.UseNpgsql(
-                        builder.Configuration.GetConnectionString("FundooConnection"));
-                });
+            // Caching (Memurai / Redis)
+            builder.Services.AddAppCaching(builder.Configuration);
 
-            EmailSettings emailSettings = new EmailSettings
+            // PostgreSQL
+            builder.Services.AddDbContext<FundooContext>(options =>
             {
-                Email = builder.Configuration["EmailSettings:Email"]!,
-                Password = builder.Configuration["EmailSettings:Password"]!,
-                Host = builder.Configuration["EmailSettings:Host"] ?? "smtp.gmail.com",
-                Port = int.Parse(
-                    builder.Configuration["EmailSettings:Port"] ?? "587")
-            };
+                options.UseNpgsql(
+                    builder.Configuration
+                        .GetConnectionString("FundooConnection"));
+            });
 
-            builder.Services.AddSingleton(emailSettings);
-
-            builder.Services.AddScoped<IEmailService, EmailService.Service.EmailService>();
-
+            // JWT Authentication
             builder.Services
                 .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
@@ -148,42 +119,31 @@ namespace Fundoo
                         };
                 });
 
-            builder.Services.AddAuthorization(options =>
-            {
-                options.DefaultPolicy =
-                    new AuthorizationPolicyBuilder()
-                        .RequireAuthenticatedUser()
-                        .RequireClaim("token_type", "access")
-                        .Build();
-
-                options.AddPolicy("ResetPasswordPolicy", policy =>
-                {
-                    policy.RequireAuthenticatedUser()
-                          .RequireClaim("token_type", "password_reset");
-                });
-            });
-
             var app = builder.Build();
 
-            // NEW: must come first so it catches errors from everything below
+            // Global exception handler
             app.UseExceptionHandler();
 
+            // Swagger
             app.UseSwagger();
-
             app.UseSwaggerUI();
 
+            // HTTPS
             app.UseHttpsRedirection();
 
-            app.UseCors("AllowFrontend");
-
+            // Authentication
             app.UseAuthentication();
 
+            // Authorization
             app.UseAuthorization();
 
+            // Response caching middleware (auth ke BAAD, controllers ke PEHLE)
+            app.UseAppCaching();
+
+            // Controllers
             app.MapControllers();
 
             app.Run();
         }
     }
-
 }

@@ -1,14 +1,15 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ModelLayer.Model
+namespace ModelLayer.Model.User.RequestModel
 {
-    public class LoginModel
+    public class ResetPasswordModel
     {
         [Required]
         [EmailAddress]
         public string email { get; set; } = string.Empty;
 
         [Required]
-        public string password { get; set; } = string.Empty;
+        [MinLength(8)]
+        public string newPassword { get; set; } = string.Empty;
     }
 }

@@ -2,7 +2,8 @@
 using BusinessLayer.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ModelLayer.Model;
+using Middleware.Services.Cache;                         // CACHE
+using ModelLayer.Model.Notes.RequestModel;
 
 namespace Fundoo.Controllers
 {
@@ -47,6 +48,7 @@ namespace Fundoo.Controllers
         }
 
         // CHANGED: now has a "type" dropdown (Active / Archive / Trash)
+        [CacheResponse(60)]                              // CACHE
         [HttpGet("ViewNotes")]
         public async Task<IActionResult> ViewNotes([FromQuery] NoteViewType type = NoteViewType.Active)
         {
@@ -60,6 +62,7 @@ namespace Fundoo.Controllers
             return Ok(new { success = true, message = $"{type} notes fetched", data = result });
         }
 
+        [CacheResponse(60)]                              // CACHE
         [HttpGet("ViewNotesById")]
         public async Task<IActionResult> ViewNotesById([FromQuery] NotesIdModel model)
         {
